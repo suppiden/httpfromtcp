@@ -1,5 +1,7 @@
 module tcp
 
+replace tcp/internal/request => ./request
+
 go 1.25.3
 
 require (
