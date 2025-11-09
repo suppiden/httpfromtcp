@@ -1,11 +1,17 @@
-package request
+package main
 
 import (
-	"errors"
 	"fmt"
+		"errors"
 	"io"
 	"strings"
 )
+
+type chunkReader struct {
+	data            string
+	numBytesPerRead int
+	pos             int
+}
 
 type state int
 
@@ -36,19 +42,19 @@ func (r *Request) parse(data []byte) (int, error) {
 
 	if r.state == 0 {
 		parseado, err := parseRequestLine(data)
-		fmt.Println("esto es en parse stringfinal1", string(data[:parseado]))
+		// fmt.Println("esto es en parse stringfinal1", string(data[:parseado]))
 		if err != nil {
 			return 0, err
 		}
 
 		if parseado == 0 && err == nil {
-		fmt.Println("esto es en parse stringfinal2")
+		// fmt.Println("esto es en parse stringfinal2")
 
 			return 0, nil
 		}
 
 		
-		fmt.Println("esto es en parse stringfinal3")
+		// fmt.Println("esto es en parse stringfinal3")
 		if len(data) == parseado {
 			
 			r.state = 1
@@ -57,18 +63,26 @@ func (r *Request) parse(data []byte) (int, error) {
 
 		
 		stringFinal := string(data[:parseado])
-		fmt.Println("esto es en parse stringfinal", stringFinal)
+		fmt.Println("probandooooooo", stringFinal)
+
+		// fmt.Println("esto es en parse stringfinal", stringFinal)
 
 		partes := strings.Split(stringFinal, " ")
+		if len(partes) != 3 {
+			return 0, errors.New("algo ha pasado en el metodo")
+
+		}
 
 		if strings.Compare(partes[0], strings.ToUpper(partes[0])) != 0 {
+			fmt.Println("esto es desde si no entra", partes)
+
 			return 0, errors.New("algo ha pasado en el metodo")
 		}
 
+		fmt.Println("esto es desde 3", partes)
 		metodo := partes[0]
 		direccion := partes[1]
 
-		fmt.Println("esto es desde alla2", partes[2])
 
 		versionHttp := partes[2]
 		numero := []string{}
@@ -76,17 +90,13 @@ func (r *Request) parse(data []byte) (int, error) {
 			numero = strings.Split(versionHttp, "/")
 
 		}
-		fmt.Println("esto es desde alla2", numero)
-
-		// numeroValido := numero[1][:len(numero[1])-1]
+		fmt.Println("esto es desde alla2", direccion)
 		numeroValido := strings.Trim(numero[1], "\r")
-
-
+	
 		if numeroValido!= "1.1" {
 			return 0, errors.New("Problema con la version")
 		}
-		
-		partes[2] = numeroValido
+		partes[2] = numero[1]
 		version := partes[2]
 
 		fmt.Println("esto es desde alla3")
@@ -111,7 +121,7 @@ func parseRequestLine(b []byte) (int, error) {
 
 	// stringFinal := ""
 	// partes := []string{}
-	fmt.Println("BLeeeeeeeeeeee  ", len(b))
+	// fmt.Println("BLeeeeeeeeeeee  ", len(b))
 
 	registeredNurse := false
 	numeroProcesado := 0
@@ -144,6 +154,9 @@ func parseRequestLine(b []byte) (int, error) {
 	
 		return 0, nil
 	}
+
+
+
 
 func RequestFromReader(reader io.Reader) (*Request, error) {
 
@@ -210,4 +223,35 @@ func RequestFromReader(reader io.Reader) (*Request, error) {
 	
 	fmt.Println(" a ver que devuelve el struct", r)
 	return &r, nil
+}
+
+func (cr *chunkReader) Read(p []byte) (n int, err error) {
+	if cr.pos >= len(cr.data) {
+		return 0, io.EOF
+	}
+	endIndex := cr.pos + cr.numBytesPerRead
+	if endIndex > len(cr.data) {
+		endIndex = len(cr.data)
+	}
+	n = copy(p, cr.data[cr.pos:endIndex])
+	cr.pos += n
+
+	return n, nil
+}
+
+func main(){
+		reader := &chunkReader{
+		data:            "GET /coffee HTTP/1.1\r\nHost: localhost:42069\r\nUser-Agent: curl/7.81.0\r\nAccept: */*\r\n\r\n",
+		
+			// data:            "GET / HTTP/1.1\r\nHost: localhost:42069\r\nUser-Agent: curl/7.81.0\r\nAccept: */*\r\n\r\n",
+		numBytesPerRead: 3,
+	}
+	r, err := RequestFromReader(reader)
+	if r != nil{
+		// fmt.Println("algo")
+	}
+
+	if err != nil{
+	// fmt.Println("algo!")
+	}	
 }
