@@ -1,0 +1,120 @@
+package main
+
+import (
+	"errors"
+	"fmt"
+	// "strings"
+)
+
+type Headers map[string]string
+
+func (h *Headers) arse(data []byte) (n int, done bool, err error) {
+
+	var head string
+	var pair string
+	// var acabado bool
+	var consumedHead int
+	var consumedPair int
+	var encontrado bool
+	// var headerFinal Headers
+
+	if string(data[0]) == "\r" && string(data[1]) == "\n" {
+		return 0, true, nil
+	}
+
+	for i := 0; len(data) > i; i++ {
+		if string(data[i]) == "\r" && string(data[i+1]) == "\n" {
+			encontrado = true
+		}
+	}
+
+	if !encontrado {
+		return 0, false, nil
+	}
+
+	for i := 0; len(data) > i; i++ {
+
+		// fmt.Println("a ver cuando sale out ", i, "y esto es el len ", len(data))
+		if string(data[i]) != " " {
+			if string(data[i]) == ":" {
+				if string(data[i+2]) == " " {
+					return 0, false, errors.New("Mal formayo")
+				}
+				break
+			}
+			consumedHead++
+			head += string(data[i])
+
+		}
+	}
+
+	// fmt.Printf("esta es el head %s", head)
+
+	data = data[consumedHead+1:]
+
+	if string(data[1]) == " " {
+		return 0, false, errors.New("Mal formayo")
+
+	}
+
+	for i := 0; len(data) > i; i++ {
+
+		if string(data[i]) != " " {
+			if string(data[i-1]) == "\r" && string(data[i]) == "\n" {
+				break
+			}
+			consumedPair++
+			pair += string(data[i])
+
+		}
+	}
+
+	// fmt.Printf(" y este es el par %s", pair)
+
+	// headerFinal := Headers{
+	// 	head: pair
+	// }
+	headerFinal := Headers{
+		head: pair,
+	}
+
+	// fmt.Println("\n a ver que hay", h)
+
+	*h = headerFinal
+
+	fmt.Println("\n a ver que hay", h)
+
+	return consumedHead + consumedPair, false, nil
+}
+
+// func NewHeaders(){
+
+// 	return Headers
+// }
+
+func main() {
+
+	var header Headers
+	// var bytePalabraArr []byte
+	// data := []byte("Host: localhost:42069\r\n\r\n")
+	data := []byte("       Host : localhost:42069       \r\n\r\n")
+	// frase := "Host: localhost:42069\r\n\r\n"
+	// fraseToByte := strings.Split(frase, "")
+	// fmt.Println("esto es len del arry or", len(fraseToByte), "\n")
+	// for i:= 0; i<=len(fraseToByte); i++ {
+	// 	fmt.Println("esto es el i ", i)
+	// fmt.Println("esto es len del arry depsu ", len(fraseToByte[i]),  "  ", fraseToByte[i],"\n")
+
+	// 	// for j := 0; j<=len(fraseToByte[i]); j++{
+	// 	// fmt.Println("esto es el j ", j)
+	// 		ver := rune(fraseToByte[i])
+
+	// 		bytePalabraArr[i] =byte(ver)
+
+	// 	// }
+	// }
+	parseo, done, err := header.arse(data)
+	// fmt.Println(" \n\n maaaa", header, "  \n\n ")
+	fmt.Printf(" \n este es el parse %d este es el done %v y este el err %s y el map %s", parseo, done, err, header)
+
+}
