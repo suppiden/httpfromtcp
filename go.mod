@@ -1,6 +1,8 @@
 module tcp
 
 replace tcp/internal/request => ./request
+replace tcp/internal/headers => ./headers
+
 
 go 1.25.3
 

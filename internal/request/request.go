@@ -12,6 +12,7 @@ type state int
 const (
 	initialized state = iota
 	done
+	requestStateParsingHeaders
 )
 
 const bufferSize int = 8
@@ -27,6 +28,8 @@ type RequestLine struct {
 	Method        string
 }
 
+
+
 func (r *Request) parse(data []byte) (int, error) {
 	// if r.state == 0 {
 	// 	return 0, nil
@@ -34,10 +37,10 @@ func (r *Request) parse(data []byte) (int, error) {
 
 	// fmt.Println("dentro e perte", string(data),"    ", len(data))
 
-	if r.state == 0 {
+	if r.state == 0 { 
 		parseado, err := parseRequestLine(data)
 		// fmt.Println("esto es en parse stringfinal1", string(data[:parseado]))
-		if err != nil {
+		if err != nil {cd
 			return 0, err
 		}
 
@@ -51,7 +54,7 @@ func (r *Request) parse(data []byte) (int, error) {
 		// fmt.Println("esto es en parse stringfinal3")
 		if len(data) == parseado {
 			
-			r.state = 1
+			r.state = 2
 			
 		}
 
@@ -95,13 +98,22 @@ func (r *Request) parse(data []byte) (int, error) {
 			RequestTarget: direccion,
 			Method:        metodo,
 		}
-		r.state = 1
+		r.state = 2
 
 		return parseado, nil
 
 	} else if r.state == 1 {
 		return 0, errors.New("error: trying to read data in a done state")
-	} else {
+	} else if r.state == 2 {
+
+	headers = NewHeaders()
+	n, done, err = headers.Parse(data[parseado:])
+	if err != nil{
+		return 0, errors.New("error: unknown state")
+
+	}
+
+	}else {
 		return 0, errors.New("error: unknown state")
 
 	}
