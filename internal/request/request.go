@@ -33,7 +33,7 @@ type RequestLine struct {
 
 func ParseHeaders(data []byte)( headers.Headers, error){
 
-	fmt.Println("coneo")
+	// fmt.Println("coneo")
 
 
 	 headersFinal := make(map[string]string)
@@ -41,25 +41,25 @@ func ParseHeaders(data []byte)( headers.Headers, error){
 		return nil, nil
 	}
 
-	fmt.Println("debug2   ", strings.Split(string(data), "\r\n"))
+	// fmt.Println("debug2   ", strings.Split(string(data), "\r\n"))
 
 	headersTroceados := strings.Split(string(data), "\r\n")
 	h := headers.NewHeaders()
 	// parseado :=0
 	for i:= 0; i<= len(headersTroceados); i++ {
-		fmt.Println(headersTroceados[i], " a ver que sale")
+		// fmt.Println(headersTroceados[i], " a ver que sale")
 		_, isFishedHeaders, err := h.Parse([]byte(strings.ToLower(headersTroceados[i]) + "\r\n\r\n"))
 		for k, v := range h {
 			headersFinal[k] = v
 		}
-		fmt.Println("algo hay aqui   HEADERS ",h)
+		// fmt.Println("algo hay aqui   HEADERS ",h)
 		if err != nil{
-			fmt.Println("esto es el error", err)
+			// fmt.Println("esto es el error", err)
 			return h, errors.New("error: unknown state")
 
 		}
 		if isFishedHeaders {
-			fmt.Println("mapa ", headersFinal)
+			// fmt.Println("mapa ", headersFinal)
 			return headersFinal, nil
 		}
 
@@ -76,11 +76,11 @@ func (r *Request) parse(data []byte) (int, error) {
 	// 	return 0, nil
 	// }
 
-	fmt.Println("ESTO ES PARA VER EL ESTADO ", r.state)
+	// fmt.Println("ESTO ES PARA VER EL ESTADO ", r.state)
 
 	if r.state == 0 || r.state == 2 { 
 		parseado, err := parseRequestLine(data)
-		fmt.Println("esto es en parse stringfinal1", string(data[:parseado]))
+		// fmt.Println("esto es en parse stringfinal1", string(data[:parseado]))
 		if err != nil {
 			return 0, err
 		}
@@ -101,17 +101,17 @@ func (r *Request) parse(data []byte) (int, error) {
 
 		if r.state == 2 {
 
-			fmt.Println("debug   ", string(data[parseado:]))
+			// fmt.Println("debug   ", string(data[parseado:]))
 
 			headers, err := ParseHeaders(data[parseado:])
 			if err != nil {
 				return 0, errors.New("hubo un error parseando los headers ")
 			}
 
-			fmt.Println("a ver los headers ",  headers )
+			// fmt.Println("a ver los headers ",  headers )
 			r.Headers = headers
 
-			fmt.Println("eso es para vert el rrrrrr", *r)
+			// fmt.Println("eso es para vert el rrrrrr", *r)
 
 			return parseado, nil
 			// if err != nil {
@@ -170,6 +170,7 @@ func (r *Request) parse(data []byte) (int, error) {
 			RequestTarget: direccion,
 			Method:        metodo,
 		}
+		fmt.Sprintf("Request line: \r\n - Method: %s")
 		r.state = 2
 
 		// fmt.Println("esto es en el final ", parseado)
@@ -246,12 +247,12 @@ func RequestFromReader(reader io.Reader) (*Request, error) {
 		for {
 			// fmt.Println("Una vez ", len(buf), "   ", string(buf), "  ", readToIndex)
 			consumed, err1 := io.ReadFull(reader, buf[readToIndex:])
-			entero, erro := r.parse(buf)
+			_, erro := r.parse(buf)
 			if erro != nil {
 				return nil, errors.New("Hubo un problema parseando la request")
 			}
-			fmt.Println(" a ver que devuelve el struct2", r)
-			fmt.Println("Una SEGUNDA VEZ consumed ", entero, " error", erro)
+			// fmt.Println(" a ver que devuelve el struct2", r)
+			// fmt.Println("Una SEGUNDA VEZ consumed ", entero, " error", erro)
 			readToIndex =  consumed + readToIndex
 			// fmt.Println("Una TERECRa VEZ consumed "," indez ", readToIndex)
 			
@@ -282,17 +283,17 @@ func RequestFromReader(reader io.Reader) (*Request, error) {
 			}
 			// fmt.Println("esto va mal", err, r)
 
-			fmt.Println(" a ver que devuelve el struct1", r)
+				// fmt.Println(" a ver que devuelve el struct1", r)
 
 			if err1 != nil{
 			r.state = 1
-			fmt.Println("acabó  ",readToIndex, err1, r)
+			// fmt.Println("acabó  ",readToIndex, err1, r)
 			break
 				
 			}
 
 		}
 	
-	fmt.Println(" a ver que devuelve el struct", r)
+	// fmt.Println(" a ver que devuelve el struct", r)
 	return &r, nil
 }

@@ -78,10 +78,15 @@ func main(){
 // - Version: 1.1
 	mensaje := fmt.Sprintf("Request line: \n - Method: %s\n - Target: %s \n - Version: %s", line.RequestLine.Method, line.RequestLine.RequestTarget, line.RequestLine.HttpVersion )
 
+	menesajeHeaders := "\nHeaders:" 
+	for k,v := range line.Headers {
+		menesajeHeaders += fmt.Sprintf("\n - %s: %s", k, v)
+	}
+
 	
 	//  }
 	
-			fmt.Println(mensaje)
+			fmt.Println(mensaje + menesajeHeaders)
 
 
 
