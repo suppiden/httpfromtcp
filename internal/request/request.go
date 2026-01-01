@@ -2,9 +2,10 @@ package request
 
 import (
 	"errors"
-	//"fmt"
+	"fmt"
 	"io"
 	"strings"
+	"tcp/internal/headers"
 )
 
 type state int
@@ -20,27 +21,67 @@ const bufferSize int = 8
 type Request struct {
 	RequestLine RequestLine
 	state       int
+	Headers 	map[string]string
 }
 
 type RequestLine struct {
 	HttpVersion   string
 	RequestTarget string
 	Method        string
+	
 }
 
+func ParseHeaders(data []byte)( headers.Headers, error){
 
+	fmt.Println("coneo")
+
+
+	 headersFinal := make(map[string]string)
+	if(!strings.Contains(string(data), "\r\n\r\n")){
+		return nil, nil
+	}
+
+	fmt.Println("debug2   ", strings.Split(string(data), "\r\n"))
+
+	headersTroceados := strings.Split(string(data), "\r\n")
+	h := headers.NewHeaders()
+	// parseado :=0
+	for i:= 0; i<= len(headersTroceados); i++ {
+		fmt.Println(headersTroceados[i], " a ver que sale")
+		_, isFishedHeaders, err := h.Parse([]byte(strings.ToLower(headersTroceados[i]) + "\r\n\r\n"))
+		for k, v := range h {
+			headersFinal[k] = v
+		}
+		fmt.Println("algo hay aqui   HEADERS ",h)
+		if err != nil{
+			fmt.Println("esto es el error", err)
+			return h, errors.New("error: unknown state")
+
+		}
+		if isFishedHeaders {
+			fmt.Println("mapa ", headersFinal)
+			return headersFinal, nil
+		}
+
+	}
+
+	return nil, nil
+
+
+
+}
 
 func (r *Request) parse(data []byte) (int, error) {
 	// if r.state == 0 {
 	// 	return 0, nil
 	// }
 
-	// fmt.Println("dentro e perte", string(data),"    ", len(data))
+	fmt.Println("ESTO ES PARA VER EL ESTADO ", r.state)
 
-	if r.state == 0 { 
+	if r.state == 0 || r.state == 2 { 
 		parseado, err := parseRequestLine(data)
-		// fmt.Println("esto es en parse stringfinal1", string(data[:parseado]))
-		if err != nil {cd
+		fmt.Println("esto es en parse stringfinal1", string(data[:parseado]))
+		if err != nil {
 			return 0, err
 		}
 
@@ -54,8 +95,39 @@ func (r *Request) parse(data []byte) (int, error) {
 		// fmt.Println("esto es en parse stringfinal3")
 		if len(data) == parseado {
 			
-			r.state = 2
+			r.state = 1
 			
+		}
+
+		if r.state == 2 {
+
+			fmt.Println("debug   ", string(data[parseado:]))
+
+			headers, err := ParseHeaders(data[parseado:])
+			if err != nil {
+				return 0, errors.New("hubo un error parseando los headers ")
+			}
+
+			fmt.Println("a ver los headers ",  headers )
+			r.Headers = headers
+
+			fmt.Println("eso es para vert el rrrrrr", *r)
+
+			return parseado, nil
+			// if err != nil {
+			// 	return 0, errors.New("Problema PARSEANDO LAS CABECERAS")
+			// }
+
+
+
+			// h := headers.NewHeaders()
+			// conmsumidosHeaders, isFishedHeaders, err := h.Parse(data[parseado:])
+			// fmt.Println("algo hay aqui   HEADERS", string(data[parseado:]))
+			// r.RequestLine.Headers = h
+			// if err != nil{
+			// 	return 0, errors.New("error: unknown state")
+
+			// }
 		}
 
 		
@@ -82,11 +154,11 @@ func (r *Request) parse(data []byte) (int, error) {
 		// fmt.Println("esto es desde alla2", numero)
 
 		// numeroValido := numero[1][:len(numero[1])-1]
-		numeroValido := strings.Trim(numero[1], "\r")
+		numeroValido := strings.Trim(numero[1], "\r\n")
 
 
 		if numeroValido!= "1.1" {
-			return 0, errors.New("Problema con la version")
+			return 0, errors.New("Problema con la version " + numeroValido)
 		}
 		
 		partes[2] = numeroValido
@@ -100,25 +172,21 @@ func (r *Request) parse(data []byte) (int, error) {
 		}
 		r.state = 2
 
+		// fmt.Println("esto es en el final ", parseado)
+
 		return parseado, nil
 
 	} else if r.state == 1 {
 		return 0, errors.New("error: trying to read data in a done state")
-	} else if r.state == 2 {
-
-	headers = NewHeaders()
-	n, done, err = headers.Parse(data[parseado:])
-	if err != nil{
-		return 0, errors.New("error: unknown state")
-
-	}
-
 	}else {
 		return 0, errors.New("error: unknown state")
 
 	}
 
 }
+
+
+
 func parseRequestLine(b []byte) (int, error) {
 
 	// stringFinal := ""
@@ -146,7 +214,7 @@ func parseRequestLine(b []byte) (int, error) {
 
 			if registeredNurse {
 				// fmt.Println("sum0a1111  ", string(b), "  pres ",numeroProcesado)
-				return numeroProcesado, nil
+				return numeroProcesado+1, nil
 			}
 		}
 
@@ -178,8 +246,12 @@ func RequestFromReader(reader io.Reader) (*Request, error) {
 		for {
 			// fmt.Println("Una vez ", len(buf), "   ", string(buf), "  ", readToIndex)
 			consumed, err1 := io.ReadFull(reader, buf[readToIndex:])
-			r.parse(buf)
-			// fmt.Println("Una SEGUNDA VEZ consumed ", consumed, "  parsed " , parsed, " indez ", readToIndex, " la string", string(buf), "lo  longitud", len(buf))
+			entero, erro := r.parse(buf)
+			if erro != nil {
+				return nil, errors.New("Hubo un problema parseando la request")
+			}
+			fmt.Println(" a ver que devuelve el struct2", r)
+			fmt.Println("Una SEGUNDA VEZ consumed ", entero, " error", erro)
 			readToIndex =  consumed + readToIndex
 			// fmt.Println("Una TERECRa VEZ consumed "," indez ", readToIndex)
 			
@@ -210,16 +282,17 @@ func RequestFromReader(reader io.Reader) (*Request, error) {
 			}
 			// fmt.Println("esto va mal", err, r)
 
-			
+			fmt.Println(" a ver que devuelve el struct1", r)
+
 			if err1 != nil{
-			// // fmt.Println("acabó",readToIndex, err1, r)
 			r.state = 1
+			fmt.Println("acabó  ",readToIndex, err1, r)
 			break
 				
 			}
 
 		}
 	
-	// fmt.Println(" a ver que devuelve el struct", r)
+	fmt.Println(" a ver que devuelve el struct", r)
 	return &r, nil
 }

@@ -58,7 +58,7 @@ func (h *Headers) Parse(data []byte) (n int, done bool, err error) {
 		}
 	}
 
-	// fmt.Printf("esta es el head %s", head)
+	fmt.Printf("esta es el head %s", head)
 
 	data = data[consumedHead+1:]
 
@@ -86,15 +86,18 @@ func (h *Headers) Parse(data []byte) (n int, done bool, err error) {
 	// headerFinal := Headers{
 	// 	head: pair
 	// }
+	fmt.Println("esto es el head", head)
+
 	isHead := validateFields(head)
 	if !isHead {
-		fmt.Println("esto es el head", head)
+		fmt.Println("esto es el head error", head)
 		return 0, false, errors.New("invalid characters head")
 	}
 
-
+		fmt.Println("esto es el pair", pair)
 	isPair := validateFields(pair)
 	if !isPair {
+		fmt.Println("invalid characterscomo, ", pair)
 		return 0, false, errors.New("invalid characters body")
 	}
 
@@ -109,22 +112,22 @@ func (h *Headers) Parse(data []byte) (n int, done bool, err error) {
 	// fmt.Println("esto es el pair ", pair
 	
 	
+	// fmt.Println("\n a ver que hay", h)
 	if _ , ok := (*h)[head]; !ok {
 		headerFinal := Headers{
 			head: pair,
 		}
 	
-		// fmt.Println("\n a ver que hay", h)
-	
+		
 		*h = headerFinal
-
-	}else{
-		resultado := (*h)[head]
-		(*h)[head] = resultado + " " + pair
-	}
-
+		
+		}else{
+			resultado := (*h)[head]
+			(*h)[head] = resultado + " " + pair
+		}
+		
+		
 	fmt.Println("\n a ver que hay", h)
-
 	return consumedHead + consumedPair +4, false, nil
 }
 
