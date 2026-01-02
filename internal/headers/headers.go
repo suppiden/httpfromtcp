@@ -1,9 +1,10 @@
 package headers
 
-import(
+import (
 	"errors"
-	// "strings"
+	// "fmt"
 	"regexp"
+	"strings"
 	// "fmt"
 )
 
@@ -17,6 +18,17 @@ func validateFields(s string) bool {
 
 type Headers map[string]string
 
+func (h *Headers)Get(key string) (string, error){
+
+	if _, ok := (*h)[strings.ToLower(key)]; !ok{
+		return "", errors.New("No se ha encontrado lo que buscabas")
+	}
+
+
+	return (*h)[strings.ToLower(key)], nil
+
+}
+
 func (h *Headers) Parse(data []byte) (n int, done bool, err error) {
 
 	var head string
@@ -28,6 +40,7 @@ func (h *Headers) Parse(data []byte) (n int, done bool, err error) {
 	// var headerFinal Headers
 
 	if string(data[0]) == "\r" && string(data[1]) == "\n" {
+
 		return 0, true, nil
 	}
 
@@ -127,7 +140,6 @@ func (h *Headers) Parse(data []byte) (n int, done bool, err error) {
 		}
 		
 		
-	// fmt.Println("\n a ver que hay", h)
 	return consumedHead + consumedPair +4, false, nil
 }
 

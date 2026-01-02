@@ -2,10 +2,11 @@ package request
 
 import (
 	"errors"
-	"fmt"
+	// "fmt"
 	"io"
 	"strings"
 	"tcp/internal/headers"
+	"strconv"
 )
 
 type state int
@@ -14,6 +15,7 @@ const (
 	initialized state = iota
 	done
 	requestStateParsingHeaders
+	requestStateParsingBody
 )
 
 const bufferSize int = 8
@@ -21,7 +23,8 @@ const bufferSize int = 8
 type Request struct {
 	RequestLine RequestLine
 	state       int
-	Headers 	map[string]string
+	Headers 	headers.Headers
+	Body        []byte
 }
 
 type RequestLine struct {
@@ -31,14 +34,15 @@ type RequestLine struct {
 	
 }
 
-func ParseHeaders(data []byte)( headers.Headers, error){
+func ParseHeaders(data []byte)( headers.Headers, int, error){
 
-	// fmt.Println("coneo")
+	// fmt.Println("coneo ", string(data))
+	var longitudHeadersParseados int
 
 
 	 headersFinal := make(map[string]string)
 	if(!strings.Contains(string(data), "\r\n\r\n")){
-		return nil, nil
+		return nil, 0, nil
 	}
 
 	// fmt.Println("debug2   ", strings.Split(string(data), "\r\n"))
@@ -47,7 +51,7 @@ func ParseHeaders(data []byte)( headers.Headers, error){
 	h := headers.NewHeaders()
 	// parseado :=0
 	for i:= 0; i<= len(headersTroceados); i++ {
-		// fmt.Println(headersTroceados[i], " a ver que sale")
+		longitudHeadersParseados +=  len(headersTroceados)
 		_, isFishedHeaders, err := h.Parse([]byte(strings.ToLower(headersTroceados[i]) + "\r\n\r\n"))
 		for k, v := range h {
 			headersFinal[k] = v
@@ -55,17 +59,54 @@ func ParseHeaders(data []byte)( headers.Headers, error){
 		// fmt.Println("algo hay aqui   HEADERS ",h)
 		if err != nil{
 			// fmt.Println("esto es el error", err)
-			return h, errors.New("error: unknown state")
+			return h, 0, errors.New("error: unknown state")
 
 		}
-		if isFishedHeaders {
-			// fmt.Println("mapa ", headersFinal)
-			return headersFinal, nil
+		if isFishedHeaders {			
+			return headersFinal, longitudHeadersParseados, nil
 		}
 
 	}
 
-	return nil, nil
+	return nil, 0, nil
+
+
+
+}
+
+func ParseBody(r Request, data []byte) ([]byte, error){
+
+	length, err := r.Headers.Get("Content-Length")
+	if err != nil {
+		r.state = 1
+		return nil, nil
+	}
+	cuerpoRaw := strings.Split(string(data), "\r\n\r\n")
+
+
+	lengthTrim  := strings.Trim(length, "\r\n")
+
+
+	lengthInt, err := strconv.Atoi(lengthTrim)
+		if err != nil {
+		return nil, errors.New("Error convirtiendo la longitud")
+	}
+
+	indexFinal := strings.Index(cuerpoRaw[1], "\n")
+	if indexFinal == -1 {
+		return nil, errors.New("Body incompleto")
+	}
+
+	if(lengthInt < len(cuerpoRaw[1][:indexFinal+1]) ) {
+		return nil, errors.New("La longitud no coincide")
+	}
+
+	// if(lengthInt == len(data) ) {
+
+	return []byte(cuerpoRaw[1][:indexFinal+1]), nil
+	// }
+
+
 
 
 
@@ -76,9 +117,7 @@ func (r *Request) parse(data []byte) (int, error) {
 	// 	return 0, nil
 	// }
 
-	// fmt.Println("ESTO ES PARA VER EL ESTADO ", r.state)
-
-	if r.state == 0 || r.state == 2 { 
+	if r.state == 0 || r.state == 2 || r.state == 3 { 
 		parseado, err := parseRequestLine(data)
 		// fmt.Println("esto es en parse stringfinal1", string(data[:parseado]))
 		if err != nil {
@@ -101,19 +140,23 @@ func (r *Request) parse(data []byte) (int, error) {
 
 		if r.state == 2 {
 
-			// fmt.Println("debug   ", string(data[parseado:]))
 
-			headers, err := ParseHeaders(data[parseado:])
+			headers, consumed, err := ParseHeaders(data[parseado:])
 			if err != nil {
 				return 0, errors.New("hubo un error parseando los headers ")
 			}
 
-			// fmt.Println("a ver los headers ",  headers )
 			r.Headers = headers
+			if headers != nil {
+				r.state = 3
+				// return parseado + consumed, nil
 
-			// fmt.Println("eso es para vert el rrrrrr", *r)
+			}
 
-			return parseado, nil
+
+			// r.state = 3
+			return parseado + consumed, nil
+
 			// if err != nil {
 			// 	return 0, errors.New("Problema PARSEANDO LAS CABECERAS")
 			// }
@@ -128,6 +171,21 @@ func (r *Request) parse(data []byte) (int, error) {
 			// 	return 0, errors.New("error: unknown state")
 
 			// }
+		}
+
+		if r.state == 3 {
+
+
+			body, err := ParseBody(*r, data[parseado:])
+			if err != nil {
+				return 0, errors.New("hubo un error parseando el body ")
+			}
+			r.Body = body
+			r.state = 1
+
+
+			return parseado, nil
+
 		}
 
 		
@@ -170,7 +228,7 @@ func (r *Request) parse(data []byte) (int, error) {
 			RequestTarget: direccion,
 			Method:        metodo,
 		}
-		fmt.Sprintf("Request line: \r\n - Method: %s")
+		// fmt.Sprintf("Request line: \r\n - Method: %s")
 		r.state = 2
 
 		// fmt.Println("esto es en el final ", parseado)
@@ -249,12 +307,12 @@ func RequestFromReader(reader io.Reader) (*Request, error) {
 			consumed, err1 := io.ReadFull(reader, buf[readToIndex:])
 			_, erro := r.parse(buf)
 			if erro != nil {
+
 				return nil, errors.New("Hubo un problema parseando la request")
 			}
 			// fmt.Println(" a ver que devuelve el struct2", r)
-			// fmt.Println("Una SEGUNDA VEZ consumed ", entero, " error", erro)
 			readToIndex =  consumed + readToIndex
-			// fmt.Println("Una TERECRa VEZ consumed "," indez ", readToIndex)
+
 			
 			// if (consumed == len(buf[readToIndex:])) && (parsed != 0) {
 			// 	readToIndex = 0
@@ -263,6 +321,7 @@ func RequestFromReader(reader io.Reader) (*Request, error) {
 			// if(i ==3){
 			// 	break
 			// }
+
 			if readToIndex >= len(buf){
 				newBud := make([]byte, len(buf)*2,)
 				copy(newBud, buf)
@@ -270,7 +329,6 @@ func RequestFromReader(reader io.Reader) (*Request, error) {
 				// unread=  len(buf[readToIndex:]) - consumed  
 				// readToIndex = unread
 				// parsed =0
-				// fmt.Println("BEEEEEEEEEEEEEEEEEEe", parsed,"   ", readToIndex, "   ", consumed)
 				
 				if consumed == len(buf){
 				// // fmt.Println("esto es el segundo parse pero primero", "  ", string(buf),"   ")
@@ -285,9 +343,8 @@ func RequestFromReader(reader io.Reader) (*Request, error) {
 
 				// fmt.Println(" a ver que devuelve el struct1", r)
 
-			if err1 != nil{
-			r.state = 1
-			// fmt.Println("acabó  ",readToIndex, err1, r)
+			if err1 != nil && r.state == 1{
+			// r.state = 1
 			break
 				
 			}
