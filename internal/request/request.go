@@ -4,9 +4,9 @@ import (
 	"errors"
 	// "fmt"
 	"io"
+	"strconv"
 	"strings"
 	"tcp/internal/headers"
-	"strconv"
 )
 
 type state int
@@ -36,7 +36,6 @@ type RequestLine struct {
 
 func ParseHeaders(data []byte)( headers.Headers, int, error){
 
-	// fmt.Println("coneo ", string(data))
 	var longitudHeadersParseados int
 
 
@@ -76,12 +75,14 @@ func ParseHeaders(data []byte)( headers.Headers, int, error){
 
 func ParseBody(r Request, data []byte) ([]byte, error){
 
+
 	length, err := r.Headers.Get("Content-Length")
 	if err != nil {
 		r.state = 1
 		return nil, nil
 	}
 	cuerpoRaw := strings.Split(string(data), "\r\n\r\n")
+	cuerpoTrimed := strings.Trim(cuerpoRaw[1],"\x00")
 
 
 	lengthTrim  := strings.Trim(length, "\r\n")
@@ -92,18 +93,25 @@ func ParseBody(r Request, data []byte) ([]byte, error){
 		return nil, errors.New("Error convirtiendo la longitud")
 	}
 
-	indexFinal := strings.Index(cuerpoRaw[1], "\n")
-	if indexFinal == -1 {
-		return nil, errors.New("Body incompleto")
-	}
 
-	if(lengthInt < len(cuerpoRaw[1][:indexFinal+1]) ) {
+	// 	fmt.Println("a ver que a" ,cuerpoRaw[1])
+
+	// indexFinal := strings.Index(cuerpoRaw[1], "\n")
+	// if indexFinal == -1 {
+	// 	return nil, errors.New("Body incompleto")
+	// }
+
+	if(lengthInt < len(cuerpoTrimed) ) {
+			// fmt.Println("a ver que a" ,len(cuerpoRaw[1]), lengthInt)
+			// for _, v := range strings.Trim(cuerpoRaw[1],"\x00") {
+			// 	fmt.Println("valor", v)
+			// }
 		return nil, errors.New("La longitud no coincide")
 	}
 
 	// if(lengthInt == len(data) ) {
 
-	return []byte(cuerpoRaw[1][:indexFinal+1]), nil
+	return []byte(cuerpoTrimed), nil
 	// }
 
 
@@ -149,7 +157,7 @@ func (r *Request) parse(data []byte) (int, error) {
 			r.Headers = headers
 			if headers != nil {
 				r.state = 3
-				// return parseado + consumed, nil
+
 
 			}
 
@@ -175,13 +183,14 @@ func (r *Request) parse(data []byte) (int, error) {
 
 		if r.state == 3 {
 
-
 			body, err := ParseBody(*r, data[parseado:])
 			if err != nil {
 				return 0, errors.New("hubo un error parseando el body ")
 			}
 			r.Body = body
 			r.state = 1
+
+			// fmt.Println("a ver el r", r)
 
 
 			return parseado, nil
@@ -303,7 +312,6 @@ func RequestFromReader(reader io.Reader) (*Request, error) {
 		
 		i:=0
 		for {
-			// fmt.Println("Una vez ", len(buf), "   ", string(buf), "  ", readToIndex)
 			consumed, err1 := io.ReadFull(reader, buf[readToIndex:])
 			_, erro := r.parse(buf)
 			if erro != nil {
@@ -341,10 +349,8 @@ func RequestFromReader(reader io.Reader) (*Request, error) {
 			}
 			// fmt.Println("esto va mal", err, r)
 
-				// fmt.Println(" a ver que devuelve el struct1", r)
-
+			
 			if err1 != nil && r.state == 1{
-			// r.state = 1
 			break
 				
 			}

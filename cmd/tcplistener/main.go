@@ -2,6 +2,7 @@ package main
 
 
 import(
+	"strings"
 	"fmt"
 	"net"
 	"errors"
@@ -76,23 +77,21 @@ func main(){
 // - Method: GET
 // - Target: /
 // - Version: 1.1
+
 	mensaje := fmt.Sprintf("Request line: \n - Method: %s\n - Target: %s \n - Version: %s", line.RequestLine.Method, line.RequestLine.RequestTarget, line.RequestLine.HttpVersion )
 
-	menesajeHeaders := "\nHeaders:" 
+	var menesajeHeaders strings.Builder; menesajeHeaders.WriteString("\nHeaders:") 
 	for k,v := range line.Headers {
-		menesajeHeaders += fmt.Sprintf("\n - %s: %s", k, v)
+		fmt.Fprintf(&menesajeHeaders, "\n - %s: %s", k, v)
 	}
+	mensajeBody := "\nBody:\n" + string(line.Body)
 
-	
-	//  }
-	
-			fmt.Println(mensaje + menesajeHeaders)
-
+	fmt.Println(mensaje + menesajeHeaders.String() + mensajeBody)
 
 
 	}
 
-		fmt.Println("termino!")
+	fmt.Println("termino!")
 
 
 
