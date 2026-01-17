@@ -4,18 +4,17 @@ import (
 	"fmt"
 	"io"
 	"strconv"
+
 	// "strings"
 	"tcp/internal/headers"
 )
 
 type StatusCode int
 
-
 const (
-	Status_200 StatusCode = 200 + iota
-	status_400
-	status_500
-	
+	Status_200 StatusCode = 200
+	Status_400 StatusCode = 400
+	Status_500 StatusCode = 500
 )
 
 func WriteStatusLine(w io.Writer, statusCode StatusCode) error {
@@ -23,17 +22,16 @@ func WriteStatusLine(w io.Writer, statusCode StatusCode) error {
 	case Status_200:
 		_, err := w.Write([]byte("HTTP/1.1 200 OK\r\n"))
 		if err != nil {
-			fmt.Println ("ha pasado un error escribriendo el status", err)
+			fmt.Println("ha pasado un error escribriendo el status", err)
 		}
-	case status_400:
-		w.Write([]byte("HTTP/1.1 400 Bad Request"))
-	case status_500:
-		w.Write([]byte("HTTP/1.1 500 Internal Server Error"))
+	case Status_400:
+		w.Write([]byte("HTTP/1.1 400 Bad Request\r\n"))
+	case Status_500:
+		w.Write([]byte("HTTP/1.1 500 Internal Server Error\r\n"))
 	}
-	
+
 	return nil
 }
-
 
 func GetDefaultHeaders(contentLen int) headers.Headers {
 	h := make(map[string]string)
@@ -46,12 +44,10 @@ func GetDefaultHeaders(contentLen int) headers.Headers {
 
 }
 
+func WriteHeaders(w io.Writer, headers headers.Headers) error {
 
-
-func WriteHeaders(w io.Writer, headers headers.Headers) error{
-
-	var menesajeHeaders string; 
-	for k,v := range headers {
+	var menesajeHeaders string
+	for k, v := range headers {
 		menesajeHeaders += fmt.Sprintf("%s: %s\r\n", k, v)
 	}
 	headersFinal := menesajeHeaders + "\r\n"
@@ -63,6 +59,5 @@ func WriteHeaders(w io.Writer, headers headers.Headers) error{
 
 	// fmt.Println("Estos son los nuevos headers ", headersFinal)
 
-	
 	return nil
 }

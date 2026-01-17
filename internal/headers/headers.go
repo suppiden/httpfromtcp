@@ -2,6 +2,7 @@ package headers
 
 import (
 	"errors"
+	"fmt"
 	// "fmt"
 	"regexp"
 	"strings"
@@ -55,7 +56,6 @@ func (h *Headers) Parse(data []byte) (n int, done bool, err error) {
 	}
 
 	for i := 0; len(data) > i; i++ {
-
 		// fmt.Println("a ver cuando sale out ", i, "y esto es el len ", len(data))
 		if string(data[i]) != " " {
 			if string(data[i]) == ":" {
@@ -65,7 +65,7 @@ func (h *Headers) Parse(data []byte) (n int, done bool, err error) {
 				break
 			}
 			consumedHead++
-			// fmt.Println("esto es la letra ", string(data[i]), " y esto la suma", consumedHead)
+			fmt.Println("esto es la letra ", string(data[i]), " y esto la suma", consumedHead)
 			head += string(data[i])
 
 		}
@@ -74,6 +74,8 @@ func (h *Headers) Parse(data []byte) (n int, done bool, err error) {
 	// fmt.Printf("esta es el head %s", head)
 
 	data = data[consumedHead+1:]
+
+		fmt.Printf("esta es el head %s", data)
 
 	if string(data[1]) == " " {
 		return 0, false, errors.New("Mal formayo")
