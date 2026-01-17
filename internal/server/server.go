@@ -1,9 +1,7 @@
 package server
 
 import (
-	"bytes"
 	"fmt"
-	"io"
 	"sync/atomic"
 
 	// "io"
@@ -18,38 +16,52 @@ type Server struct {
 	closed atomic.Bool
 }
 
-type Handler func(w io.Writer, req *request.Request) *HandlerError
+type Handler func(w *response.Writer, req *request.Request)
 
 type HandlerError struct {
 	code    response.StatusCode
 	message string
 }
 
-func HandlerFunc(w io.Writer, req *request.Request) *HandlerError {
+func HandlerFunc(w *response.Writer, req *request.Request) {
 
 	if req.RequestLine.RequestTarget == "/yourproblem" {
-		return &HandlerError{
-			code:    response.Status_400,
-			message: "Your problem is not my problem\n",
-		}
+			w.WriteStatusLine(response.Status_400)
+			headersDefault := response.GetDefaultHeaders(len(response.Html_error_400))
+			w.WriteHeaders(headersDefault)
+			w.WriteBody([]byte(response.Html_error_400))
+		
 	}
 
 	if req.RequestLine.RequestTarget == "/myproblem" {
-		return &HandlerError{
-			code:    response.Status_500,
-			message: "Woopsie, my bad\n",
-		}
+			w.WriteStatusLine(response.Status_500)
+			headersDefault := response.GetDefaultHeaders(len(response.Html_error_500))
+			w.WriteHeaders(headersDefault)
+			w.WriteBody([]byte(response.Html_error_500))
+		
 	}
 
-	_, err := w.Write([]byte("All good, frfr\n"))
-	if err != nil {
-		return &HandlerError{
-			code:    response.Status_500,
-			message: "Error writing response",
-		}
+		if req.RequestLine.RequestTarget == "/myproblem" {
+			w.WriteStatusLine(response.Status_500)
+			headersDefault := response.GetDefaultHeaders(len(response.Html_error_500))
+			w.WriteHeaders(headersDefault)
+			w.WriteBody([]byte(response.Html_error_500))
+		
 	}
 
-	return nil
+			w.WriteStatusLine(response.Status_200)
+			headersDefault := response.GetDefaultHeaders(len(response.Html_succes))
+			w.WriteHeaders(headersDefault)
+			_, err := w.WriteBody([]byte(response.Html_succes))
+	// _, err := w.Write([]byte("All good, frfr\n"))
+			if err != nil {
+			
+					w.WriteStatusLine(response.Status_500)
+					headersDefault := response.GetDefaultHeaders(len(response.Html_error_500))
+					w.WriteHeaders(headersDefault)
+					w.WriteBody([]byte(response.Html_error_500))
+				
+			}
 }
 
 // func conect(port int) (net.Listener, error){
@@ -133,6 +145,9 @@ func (s *Server) listen(handler Handler) {
 
 func (s *Server) handle(conn net.Conn, handler Handler) {
 	defer conn.Close()
+	wr := response.Writer{
+		Con : conn,
+	}
 
 	req, err := request.RequestFromReader(conn)
 	if err != nil {
@@ -141,45 +156,45 @@ func (s *Server) handle(conn net.Conn, handler Handler) {
 	}
 
 	// Create a buffer for the handler to write to
-	buf := &bytes.Buffer{}
+	// buf := &bytes.Buffer{}
 
 	// Call the handler
-	handlerErr := handler(buf, req)
+	 handler(&wr, req)
 
-	if handlerErr != nil {
-		// Handler returned an error - write error response
-		errS := response.WriteStatusLine(conn, handlerErr.code)
-		if errS != nil {
-			fmt.Println("ha habido un error escribiendo el status", errS)
-			return
-		}
-		headersResponse := response.GetDefaultHeaders(len(handlerErr.message))
-		errH := response.WriteHeaders(conn, headersResponse)
-		if errH != nil {
-			fmt.Println("ha habido un error escribiendo los headers", errH)
-			return
-		}
-		conn.Write([]byte(handlerErr.message))
-		return
-	}
+	// if handlerErr != nil {
+	// 	// Handler returned an error - write error response
+	// 	errS := wr.WriteStatusLine(handlerErr.code)
+	// 	if errS != nil {
+	// 		fmt.Println("ha habido un error escribiendo el status", errS)
+	// 		return
+	// 	}
+	// 	headersResponse := response.GetDefaultHeaders(len(handlerErr.message))
+	// 	errH := wr.WriteHeaders(headersResponse)
+	// 	if errH != nil {
+	// 		fmt.Println("ha habido un error escribiendo los headers", errH)
+	// 		return
+	// 	}
+	// 	conn.Write([]byte(handlerErr.message))
+	// 	return
+	// }
 
 	// Handler succeeded - write success response
-	body := buf.Bytes()
-	errS := response.WriteStatusLine(conn, response.Status_200)
-	if errS != nil {
-		fmt.Println("ha habido un error escribiendo el status", errS)
-		return
-	}
+	// body := buf.Bytes()
+	// errS := wr.WriteStatusLine(response.Status_200)
+	// if errS != nil {
+	// 	fmt.Println("ha habido un error escribiendo el status", errS)
+	// 	return
+	// }
 
-	headersResponse := response.GetDefaultHeaders(len(body))
-	errH := response.WriteHeaders(conn, headersResponse)
-	if errH != nil {
-		fmt.Println("ha habido un error escribiendo los headers", errH)
-		return
-	}
+	// headersResponse := response.GetDefaultHeaders(len(body))
+	// errH := wr.WriteHeaders(headersResponse)
+	// if errH != nil {
+	// 	fmt.Println("ha habido un error escribiendo los headers", errH)
+	// 	return
+	// }
 
-	// Write the response body
-	conn.Write(body)
+	// // Write the response body
+	// conn.Write(body)
 }
 
 // func (s *Server) handle(conn net.Conn){
