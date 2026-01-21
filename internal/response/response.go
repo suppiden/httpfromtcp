@@ -12,9 +12,7 @@ import (
 type StatusCode int
 
 type Writer struct {
-
-	 Con net.Conn
-
+	Con net.Conn
 }
 
 const (
@@ -23,11 +21,11 @@ const (
 	Status_500 StatusCode = 500
 )
 
-const(
+const (
 	Html_error_400 = "<html> <head> <title>400 Bad Request</title> </head> <body> <h1>Bad Request</h1> <p>Your request honestly kinda sucked.</p> </body> </html>"
 	Html_error_500 = "<html> <head> <title>500 Internal Server Error</title> </head> <body> <h1>Internal Server Error</h1> <p>Okay, you know what? This one is on me.</p> </body> </html>"
-	Html_succes = "<html> <head> <title>200 OK</title> </head> <body> <h1>Success!</h1> <p>Your request was an absolute banger.</p> </body> </html>"
-	)
+	Html_succes    = "<html> <head> <title>200 OK</title> </head> <body> <h1>Success!</h1> <p>Your request was an absolute banger.</p> </body> </html>"
+)
 
 func (w *Writer) WriteStatusLine(statusCode StatusCode) error {
 
@@ -48,7 +46,12 @@ func (w *Writer) WriteStatusLine(statusCode StatusCode) error {
 
 func GetDefaultHeaders(contentLen int) headers.Headers {
 	h := make(map[string]string)
-	h["Content-Length"] = strconv.Itoa(contentLen)
+	if contentLen != 0 {
+		h["Content-Length"] = strconv.Itoa(contentLen)
+	} else {
+		h["Transfer-Encoding"] = "chunked"
+	}
+
 	h["Connection"] = "close"
 	h["Content-Type"] = "text/html"
 
@@ -78,6 +81,29 @@ func (w *Writer) WriteHeaders(headers headers.Headers) error {
 func (w *Writer) WriteBody(p []byte) (int, error) {
 
 	b, err := w.Con.Write([]byte(p))
+	if err != nil {
+		return 0, err
+	}
+
+	return b, nil
+
+}
+
+func (w *Writer) WriteChunkedBody(p []byte) (int, error) {
+	body := fmt.Sprintf("%X\r\n%s\r\n", len(p), string(p))
+	fmt.Println("eso es el body", body)
+
+	b, err := w.Con.Write([]byte(body))
+	if err != nil {
+		return 0, err
+	}
+
+
+	return b, nil
+}
+
+func (w *Writer) WriteChunkedBodyDone() (int, error) {
+	b, err := w.Con.Write([]byte("0\r\n\r\n"))
 	if err != nil {
 		return 0, err
 	}

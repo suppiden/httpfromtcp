@@ -2,6 +2,9 @@ package server
 
 import (
 	"fmt"
+	"io"
+	"net/http"
+	"strings"
 	"sync/atomic"
 
 	// "io"
@@ -25,11 +28,14 @@ type HandlerError struct {
 
 func HandlerFunc(w *response.Writer, req *request.Request) {
 
+	// fmt.Println("Eso es reques line ", req.RequestLine.RequestTarget )
+
 	if req.RequestLine.RequestTarget == "/yourproblem" {
 			w.WriteStatusLine(response.Status_400)
 			headersDefault := response.GetDefaultHeaders(len(response.Html_error_400))
 			w.WriteHeaders(headersDefault)
 			w.WriteBody([]byte(response.Html_error_400))
+			return
 		
 	}
 
@@ -38,30 +44,74 @@ func HandlerFunc(w *response.Writer, req *request.Request) {
 			headersDefault := response.GetDefaultHeaders(len(response.Html_error_500))
 			w.WriteHeaders(headersDefault)
 			w.WriteBody([]byte(response.Html_error_500))
+			return
 		
 	}
 
-		if req.RequestLine.RequestTarget == "/myproblem" {
-			w.WriteStatusLine(response.Status_500)
-			headersDefault := response.GetDefaultHeaders(len(response.Html_error_500))
-			w.WriteHeaders(headersDefault)
-			w.WriteBody([]byte(response.Html_error_500))
-		
-	}
 
-			w.WriteStatusLine(response.Status_200)
-			headersDefault := response.GetDefaultHeaders(len(response.Html_succes))
-			w.WriteHeaders(headersDefault)
-			_, err := w.WriteBody([]byte(response.Html_succes))
-	// _, err := w.Write([]byte("All good, frfr\n"))
-			if err != nil {
+
+	if strings.HasPrefix(req.RequestLine.RequestTarget, "/httpbin") {
+
+			buf := make([]byte, 1024)
+			fullData := make([]byte, 0)
+
+
+			resp, err1 := http.Get("https://httpbin.org/stream/100")
 			
-					w.WriteStatusLine(response.Status_500)
-					headersDefault := response.GetDefaultHeaders(len(response.Html_error_500))
-					w.WriteHeaders(headersDefault)
-					w.WriteBody([]byte(response.Html_error_500))
+			
+			
+			
+			
+			
+			w.WriteStatusLine(response.Status_200)
+			headersDefault := response.GetDefaultHeaders(0)
+			w.WriteHeaders(headersDefault)
+			for {
+				n, err := resp.Body.Read(buf)
+				fmt.Println(string(buf))
+				if err1 != nil {
+					fmt.Println("Esta vez este es el error", err)
+				}
 				
+				if n > 0 {
+					fullData = append(fullData, buf[:n] ...)
+				}
+				n, errCh :=	w.WriteChunkedBody(fullData)
+				if n < 0 || errCh != nil {
+					break
+				}
+				
+				if err != nil {
+					fmt.Println("no he sacado info ", err, io.EOF)
+					if(err == io.EOF){
+						_, err := w.WriteChunkedBodyDone()
+
+						if err != nil {
+							fmt.Println("Some errors writing the end of chunk", err)
+						}
+						break
+					}
+				}
 			}
+			
+		return
+	}
+
+	w.WriteStatusLine(response.Status_200)
+	headersDefault := response.GetDefaultHeaders(len(response.Html_succes))
+	w.WriteHeaders(headersDefault)
+	_, err := w.WriteBody([]byte(response.Html_succes))
+// _, err := w.Write([]byte("All good, frfr\n"))
+
+
+	if err != nil {
+	
+		w.WriteStatusLine(response.Status_500)
+		headersDefault := response.GetDefaultHeaders(len(response.Html_error_500))
+		w.WriteHeaders(headersDefault)
+		w.WriteBody([]byte(response.Html_error_500))
+		
+	}
 }
 
 // func conect(port int) (net.Listener, error){
@@ -142,6 +192,9 @@ func (s *Server) listen(handler Handler) {
 	}
 
 }
+
+
+
 
 func (s *Server) handle(conn net.Conn, handler Handler) {
 	defer conn.Close()

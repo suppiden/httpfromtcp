@@ -78,6 +78,7 @@ func ParseHeaders(data []byte) (headers.Headers, int, error) {
 func ParseBody(r Request, data []byte) ([]byte, error) {
 
 	length, err := r.Headers.Get("Content-Length")
+	fmt.Println("AAAAAAAAAA " , string(data))
 	if err != nil {
 		fmt.Println("a ver que a err ", err)
 		r.state = 1
