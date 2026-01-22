@@ -6,6 +6,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"sync/atomic"
@@ -188,6 +189,62 @@ func HandlerFunc(w *response.Writer, req *request.Request) {
 			
 		return
 	}
+
+
+	if req.RequestLine.RequestTarget == "/video" {
+			w.WriteStatusLine(response.Status_200)
+			
+			
+			by, err := os.ReadFile("../../cmd/httpserver/assets/vim.mp4")
+			headersDefault := response.GetDefaultHeaders(len(by))
+			headersDefault["Content-Type"] = "video/mp4"
+			w.WriteHeaders(headersDefault)
+			if err != nil {
+				fmt.Println(" No se ha podido extraer el fichero ", err)
+			}
+			n, errCh :=	w.WriteBody(by)
+				if n < 0 || errCh != nil {
+					fmt.Println(" No se ha podido enviar el video ", errCh)
+				}
+
+			// _, errChFinal := w.WriteChunkedBodyDone()
+			// 	if errChFinal != nil {
+			// 		fmt.Println("Some errors writing the end of chunk", errChFinal)
+			// 	}
+
+				return
+
+			
+		
+	}
+
+
+	// 	if req.RequestLine.RequestTarget == "/video" {
+	// 		w.WriteStatusLine(response.Status_200)
+			
+			
+	// 		by, err := os.ReadFile("../../cmd/httpserver/assets/vim.mp4")
+	// 		headersDefault := response.GetDefaultHeaders(0)
+	// 		headersDefault["Content-Type"] = "video/mp4"
+	// 		w.WriteHeaders(headersDefault)
+	// 		if err != nil {
+	// 			fmt.Println(" No se ha podido extraer el fichero ", err)
+	// 		}
+	// 		n, errCh :=	w.WriteChunkedBody(by)
+	// 			if n < 0 || errCh != nil {
+	// 				fmt.Println(" No se ha podido enviar el video ", errCh)
+	// 			}
+
+	// 		_, errChFinal := w.WriteChunkedBodyDone()
+	// 			if errChFinal != nil {
+	// 				fmt.Println("Some errors writing the end of chunk", errChFinal)
+	// 			}
+
+	// 			return
+
+			
+		
+	// }
 
 	w.WriteStatusLine(response.Status_200)
 	headersDefault := response.GetDefaultHeaders(len(response.Html_succes))

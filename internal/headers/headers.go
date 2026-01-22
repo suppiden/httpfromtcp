@@ -13,8 +13,8 @@ func validateFields(s string) bool {
 	// re := regexp.MustCompile("([A-Za-z!#$%&'*+-.^_`|~]{1,})\\d")
 	re := regexp.MustCompile("^[A-Za-z0-9!#$%&'*+-.^_`|~]")
 
-
-	return re.MatchString(s)
+	re.MatchString(s)
+	return true
 }
 
 type Headers map[string]string
@@ -71,7 +71,7 @@ func (h *Headers) Parse(data []byte) (n int, done bool, err error) {
 		}
 	}
 
-	// fmt.Printf("esta es el head %s", head)
+	fmt.Printf("esta es el head %s", head)
 
 	data = data[consumedHead+1:]
 
@@ -96,7 +96,7 @@ func (h *Headers) Parse(data []byte) (n int, done bool, err error) {
 		}
 	}
 
-	// fmt.Printf(" y este es el par %s", pair)
+	fmt.Printf(" y este es el par %s", pair)
 
 	// headerFinal := Headers{
 	// 	head: pair

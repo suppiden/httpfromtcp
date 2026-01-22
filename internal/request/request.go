@@ -61,6 +61,7 @@ func ParseHeaders(data []byte) (headers.Headers, int, error) {
 		}
 		_, isFinishedHeaders, err := h.Parse([]byte(strings.ToLower(line) + "\r\n\r\n"))
 		if err != nil {
+			fmt.Println("el error de los headers ", err)
 			return nil, 0, err
 		}
 		for k, v := range h {

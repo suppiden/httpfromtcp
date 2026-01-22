@@ -87,7 +87,7 @@ func (w *Writer) WriteBody(p []byte) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-
+	fmt.Println("eso es el body num ", b)
 	return b, nil
 
 }
@@ -100,6 +100,8 @@ func (w *Writer) WriteChunkedBody(p []byte) (int, error) {
 	if err != nil {
 		return 0, err
 	}
+
+	fmt.Println("eso es el body num ", b)
 
 
 	return b, nil
