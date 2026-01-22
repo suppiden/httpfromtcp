@@ -68,6 +68,9 @@ func (w *Writer) WriteHeaders(headers headers.Headers) error {
 	}
 	headersFinal := menesajeHeaders + "\r\n"
 
+			fmt.Println("heaDERS", headersFinal)
+
+
 	_, err := w.Con.Write([]byte(headersFinal))
 	if err != nil {
 		fmt.Println("ha habido un error escribiendo en los headers", err)
@@ -91,7 +94,7 @@ func (w *Writer) WriteBody(p []byte) (int, error) {
 
 func (w *Writer) WriteChunkedBody(p []byte) (int, error) {
 	body := fmt.Sprintf("%X\r\n%s\r\n", len(p), string(p))
-	fmt.Println("eso es el body", body)
+	// fmt.Println("eso es el body", body)
 
 	b, err := w.Con.Write([]byte(body))
 	if err != nil {
@@ -103,7 +106,8 @@ func (w *Writer) WriteChunkedBody(p []byte) (int, error) {
 }
 
 func (w *Writer) WriteChunkedBodyDone() (int, error) {
-	b, err := w.Con.Write([]byte("0\r\n\r\n"))
+	fmt.Println("no he sacadorepeticion ")
+	b, err := w.Con.Write([]byte("0\r\n"))
 	if err != nil {
 		return 0, err
 	}
@@ -111,3 +115,24 @@ func (w *Writer) WriteChunkedBodyDone() (int, error) {
 	return b, nil
 
 }
+
+func (w *Writer) WriteTrailers(h headers.Headers) error{
+		var menesajeHeaders string
+	for k, v := range h {
+		menesajeHeaders += fmt.Sprintf("%s: %s\r\n", k, v)
+	}
+	headersFinal := menesajeHeaders + "\r\n"
+	fmt.Println("no he sacado info2.5 ", headersFinal)
+
+	n, err := w.Con.Write([]byte(headersFinal))
+	if err != nil {
+		fmt.Println("ha habido un error escribiendo en los headers", err)
+	}
+
+	fmt.Println("esto es lo que he ha escrito ", n)
+
+	// fmt.Println("Estos son los nuevos headers ", headersFinal)
+
+	return nil
+}
+
